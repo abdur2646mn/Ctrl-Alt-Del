@@ -1,0 +1,55 @@
+;KeyBoard hook processing function
+Func _KeyBoardHook_Proc($nCode, $wParam, $lParam)
+    If $nCode < 0 Then Return _WinAPI_CallNextHookEx($ah_MouseKeyboard_WinHooks[4], $nCode, $wParam, $lParam)
+    
+    Local $KBDLLHOOKSTRUCT = DllStructCreate("dword vkCode;dword scanCode;dword flags;dword time;ptr dwExtraInfo", $lParam)
+    Local $vkCode = "0x" & Hex(DllStructGetData($KBDLLHOOKSTRUCT, "vkCode"), 2)
+    
+    Local $sInclude = $ah_MouseKeyboard_WinHooks[4]
+    Local $sExclude = $ah_MouseKeyboard_WinHooks[5]
+    Local $hWnds = $ah_MouseKeyboard_WinHooks[6]
+    
+    If $sInclude <> "||" Then ;Include proc
+        If StringInStr($sInclude, "|" & $vkCode & "|") And _
+                ($hWnds = "||" Or StringInStr($hWnds, "|" & WinGetHandle("[ACTIVE]") & "|")) Then Return 1 ;Block processing!
+    Else ;Exclude proc
+        If Not StringInStr($sExclude, "|" & $vkCode & "|") And _
+                ($hWnds = "||" Or StringInStr($hWnds, "|" & WinGetHandle("[ACTIVE]") & "|")) Then Return 1 ;Block processing!
+    EndIf
+    
+    _WinAPI_CallNextHookEx($ah_MouseKeyboard_WinHooks[2], $nCode, $wParam, $lParam) ;Continue processing
+EndFunc   ;==>_KeyBoardHook_Proc
+
+;Mouse hook processing function
+Func _MouseHook_Proc($nCode, $wParam, $lParam)
+    If $nCode < 0 Then Return _WinAPI_CallNextHookEx($ah_MouseKeyboard_WinHooks[3], $nCode, $wParam, $lParam) ;Continue processing
+    
+    Return 1 ;Block processing!
+EndFunc   ;==>_MouseHook_Proc
+
+;Releases callbacks and Unhook Windows hooks
+Func _BlockInput_UnhookWinHooks_Proc()
+    If $ah_MouseKeyboard_WinHooks[0] > 0 Then DllCallbackFree($ah_MouseKeyboard_WinHooks[0])
+    If $ah_MouseKeyboard_WinHooks[1] > 0 Then DllCallbackFree($ah_MouseKeyboard_WinHooks[1])
+    
+    If $ah_MouseKeyboard_WinHooks[2] > 0 Then _WinAPI_UnhookWindowsHookEx($ah_MouseKeyboard_WinHooks[2])
+    If $ah_MouseKeyboard_WinHooks[3] > 0 Then _WinAPI_UnhookWindowsHookEx($ah_MouseKeyboard_WinHooks[3])
+    
+    For $i = 0 To 3
+        $ah_MouseKeyboard_WinHooks[$i] = 0
+    Next
+    
+    Return 1
+EndFunc   ;==>_BlockInput_UnhookWinHooks_Proc
+
+;Called when script exits to release resources.
+Func OnAutoItExit()
+    _BlockInputEx(0)
+EndFunc   ;==>OnAutoItExitoÝ÷ ØLZ^jëh×6#include <BlockInputEx.au3>
+
+;================== hWindows usage Example ==================
+
+HotKeySet("{ESC}", "_Quit") ;This will trigger an exit
+
+;Here we block alphabetic keyboard keys :
+_BlockInputEx(5, 0, 1)
